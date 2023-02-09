@@ -1,0 +1,19 @@
+{
+    "name": "kkubel/test-doctrine",
+    "type": "library",
+    "license": "open-source",
+    "autoload": {
+        "psr-4": {
+            "MyProject\\Components\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Kamil Kubeł",
+            "email": "email@yes.pl"
+        }
+    ],
+    "require": {
+        "doctrine/migrations": "^3.5"
+    }
+}
