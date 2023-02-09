@@ -45,23 +45,16 @@ EOT
         $migratorConfigurationFactory = $this->getDependencyFactory()->getConsoleInputMigratorConfigurationFactory();
         $migratorConfiguration = $migratorConfigurationFactory->getMigratorConfiguration($input);
 
-        $versionRollback = $input->getArgument('-v')[0];
+        $rollbackVersion = $input->getArgument('-v')[0];
 
-        $executedMigrations = array_map(function (ExecutedMigration $migration) {
-            return $migration->getVersion()->__toString();
-        }, $this->getDependencyFactory()->getMetadataStorage()->getExecutedMigrations()->getItems());
+        $executedVersions = $this->getExecutedVersions();
 
-        $migrationIndex = array_search($versionRollback, $executedMigrations);
-
-        if ($migrationIndex === false) {
-            $this->io->error('Such migration does not exist.');
-            return 1;
-        }
+        $migrationIndex = $this->getIndexOfRollbackVersion($rollbackVersion, $executedVersions);
 
         $this->getDependencyFactory()->getMetadataStorage()->ensureInitialized();
 
-        $versionsForRollback = array_slice($executedMigrations, $migrationIndex + 1, count($executedMigrations));
-        $direction = 'down';
+        $versionsForRollback = array_slice($executedVersions, $migrationIndex + 1, count($executedVersions));
+        $direction = Direction::DOWN;
 
         $planCalculator = $this->getDependencyFactory()->getMigrationPlanCalculator();
         $plan = $planCalculator->getPlanForVersions(
@@ -72,7 +65,7 @@ EOT
         );
 
         $this->getDependencyFactory()->getLogger()->notice(
-            'Executing' . ($migratorConfiguration->isDryRun() ? ' (dry-run)' : '') . ' {versions} {direction}',
+            'Executing {versions} {direction}',
             [
                 'direction' => $plan->getDirection(),
                 'versions' => implode(', ', $versionsForRollback),
@@ -80,11 +73,30 @@ EOT
         );
 
         $migrator = $this->getDependencyFactory()->getMigrator();
-        $sql = $migrator->migrate($plan, $migratorConfiguration);
+        $migrator->migrate($plan, $migratorConfiguration);
 
         $this->io->newLine();
 
         return 0;
+    }
+
+    private function getIndexOfRollbackVersion(string $rollbackVersion, array $versions): int
+    {
+        $migrationIndex = array_search($rollbackVersion, $versions);
+
+        if ($migrationIndex === false) {
+            $this->io->error('Such migration does not exist.');
+            return 1;
+        }
+
+        return $migrationIndex;
+    }
+
+    private function getExecutedVersions(): array
+    {
+        return array_map(function (ExecutedMigration $migration) {
+            return $migration->getVersion()->__toString();
+        }, $this->getDependencyFactory()->getMetadataStorage()->getExecutedMigrations()->getItems());
     }
 
 }
