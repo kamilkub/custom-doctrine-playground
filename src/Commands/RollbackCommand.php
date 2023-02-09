@@ -46,7 +46,12 @@ EOT
 
         $executedVersions = $this->getExecutedVersions();
 
-        $migrationIndex = $this->getIndexOfRollbackVersion($rollbackVersion, $executedVersions);
+        $migrationIndex = array_search($rollbackVersion, $executedVersions);
+
+        if ($migrationIndex === false) {
+            $this->io->error('Such migration does not exist.');
+            return 1;
+        }
 
         $this->getDependencyFactory()->getMetadataStorage()->ensureInitialized();
 
@@ -75,18 +80,6 @@ EOT
         $this->io->newLine();
 
         return 0;
-    }
-
-    private function getIndexOfRollbackVersion(string $rollbackVersion, array $versions): int
-    {
-        $migrationIndex = array_search($rollbackVersion, $versions);
-
-        if ($migrationIndex === false) {
-            $this->io->error('Such migration does not exist.');
-            return 1;
-        }
-
-        return $migrationIndex;
     }
 
     private function getExecutedVersions(): array
